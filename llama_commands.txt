@@ -1,0 +1,151 @@
+LLAMA.CPP LOCAL CHATBOT - COMMANDS (Windows PowerShell)
+=========================================================
+
+Program folder : D:\llama\llama-b12675-bin-win-cpu-x64
+Models folder  : D:\llama\models
+Scripts folder : D:\llama\scripts
+Chat page      : http://127.0.0.1:8080   (always use this exact address, so your chat history stays)
+
+
+1) FIRST TIME ONLY: create the folders
+---------------------------------------
+mkdir D:\llama\models
+mkdir D:\llama\scripts
+
+(If it says the folder already exists, ignore it.)
+
+
+2) START THE SERVER - BASIC CHAT, NO WEB SEARCH
+------------------------------------------------
+cd D:\llama\llama-b12675-bin-win-cpu-x64
+$env:LLAMA_CACHE = "D:\llama\models"
+.\llama-server.exe -hf Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M --port 8080
+
+- The first run downloads the model (about 1 GB). After that it loads from D:\llama\models.
+- Set LLAMA_CACHE every time, otherwise it will download the model again to the default cache.
+- When the log says "listening on http://127.0.0.1:8080", open the chat page.
+- The first minute after starting, the page may show errors (503) while the model loads. Wait and retry.
+
+
+3) IF REPLIES ARE SLOW (optional)
+----------------------------------
+cd D:\llama\llama-b12675-bin-win-cpu-x64
+$env:LLAMA_CACHE = "D:\llama\models"
+.\llama-server.exe -hf Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M --port 8080 -t 4 -c 2048
+
+-t 4     = CPU threads (use your physical core count)
+-c 2048  = context length (lower uses less RAM)
+
+
+4) TRY A BIGGER MODEL (optional)
+---------------------------------
+cd D:\llama\llama-b12675-bin-win-cpu-x64
+$env:LLAMA_CACHE = "D:\llama\models"
+.\llama-server.exe -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080
+
+
+5) WEB SEARCH IN THE MAIN CHAT PAGE (MCP) - NEEDS TWO WINDOWS
+---------------------------------------------------------------
+One-time install (any PowerShell window):
+
+pip install fastmcp ddgs
+
+WINDOW 1 - start the search tool (keep it open, listens on port 8000):
+
+cd D:\llama\scripts
+python mcp_websearch.py
+
+WINDOW 2 - start llama-server with the 3B model and the MCP flags:
+
+cd D:\llama\llama-b12675-bin-win-cpu-x64
+$env:LLAMA_CACHE = "D:\llama\models"
+.\llama-server.exe -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080 -c 4096 --jinja --webui-mcp-proxy
+
+-c 4096            = bigger context, leaves room for search results
+--jinja            = enables tool calling
+--webui-mcp-proxy  = the page talks to the MCP server through llama-server (avoids CORS errors)
+
+THEN IN THE BROWSER (first time only):
+1. Open http://127.0.0.1:8080 and press Ctrl+F5.
+2. Click the gear icon (settings) and open the MCP section.
+3. Add a server with the URL:  http://127.0.0.1:8000/mcp
+4. Turn on the llama-server proxy option for that entry, then connect.
+5. In the chat, enable the search_web tool.
+6. Ask, for example: "Use the search_web tool to find the meaning of physical imbalance."
+
+Notes:
+- The 3B model decides by itself when to search. If it answers from memory, say "search online for ..."
+  or "use the search_web tool to ...".
+- The MCP proxy is experimental. Do not expose port 8080 to other computers or networks.
+- Search queries go to DuckDuckGo, so this mode is not fully offline.
+- Replies with search can take 30 to 90 seconds on CPU.
+
+
+6) ALTERNATIVE: FLASK CHAT APP WITH A "SEARCH THE WEB" CHECKBOX (port 5000)
+---------------------------------------------------------------------------
+One-time install:
+
+pip install flask ddgs requests
+
+WINDOW 1 - llama-server (basic command from step 2 or 4, with -c 4096 recommended):
+
+cd D:\llama\llama-b12675-bin-win-cpu-x64
+$env:LLAMA_CACHE = "D:\llama\models"
+.\llama-server.exe -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080 -c 4096
+
+WINDOW 2 - the Flask app:
+
+cd D:\llama\scripts
+python chat_search_app.py
+
+Then open: http://127.0.0.1:5000
+
+
+7) ONE-CLICK START: start.bat (web search version)
+---------------------------------------------------
+Save this as D:\llama\start.bat (Notepad, Save as type "All files"), then double-click it.
+It opens the search tool in its own window and starts llama-server in this one.
+
+@echo off
+start "MCP search" cmd /k "cd /d D:\llama\scripts && python mcp_websearch.py"
+cd /d D:\llama\llama-b12675-bin-win-cpu-x64
+set LLAMA_CACHE=D:\llama\models
+llama-server.exe -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080 -c 4096 --jinja --webui-mcp-proxy
+
+
+8) TROUBLESHOOTING
+-------------------
+Port 8000 already in use (old MCP script still running):
+    netstat -ano | findstr :8000
+    taskkill /PID <number in the last column> /F
+
+MCP shows "NetworkError when attempting to fetch resource":
+    - Check that the MCP window is still running with no traceback.
+    - Test in a browser tab: http://127.0.0.1:8000/mcp
+      A "Missing session ID" message means the server is running fine.
+    - Make sure llama-server was started with --jinja --webui-mcp-proxy and the
+      proxy option is on for the MCP entry in settings.
+    - Use 127.0.0.1 everywhere, not localhost.
+
+Spinner never stops in the chat box:
+    - Check the llama-server window. If it is still processing, wait.
+    - Otherwise press Ctrl+F5. Your chat history is kept.
+
+"Failed to create symlink... degraded mode" in the log:
+    - Harmless on Windows. The model file is just copied instead of linked.
+
+Python script not found:
+    - cd into D:\llama\scripts first, then run python <script name>.
+
+Check the Python version:
+    python --version
+
+
+NOTES
+-----
+- Keep the PowerShell windows open while chatting. Closing one stops that part.
+- Press Ctrl+C in a window to stop its program.
+- Use the same browser and the same address (http://127.0.0.1:8080) to keep your chat history.
+  History is stored in the browser, not by llama.cpp.
+- Do not change the host to 0.0.0.0 unless you also add: --api-key yourpassword
+- Files in D:\llama\scripts: mcp_websearch.py (search tool), chat_search_app.py (Flask app).

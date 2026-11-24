@@ -1,0 +1,4 @@
+fastmcp
+ddgs
+flask
+requests
