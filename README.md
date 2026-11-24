@@ -104,7 +104,7 @@ python mcp_websearch.py
 ```powershell
 cd D:\llama\llama-b12675-bin-win-cpu-x64
 $env:LLAMA_CACHE = "D:\llama\models"
-.\llama-server.exe -hf Qwen/Qwen2.5-3B-Instruct-GGUF:Q4_K_M --port 8080 -c 4096 --jinja --webui-mcp-proxy
+.\llama-server.exe -hf Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M --port 8080 -c 4096 --jinja --webui-mcp-proxy
 ```
 
 The first run downloads the model (about 2 GB). Wait until the log says `listening on http://127.0.0.1:8080`.
