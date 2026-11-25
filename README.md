@@ -2,10 +2,15 @@
 
 A small AI assistant that runs on your own computer (CPU only, no GPU, no paid services) and can search the web. It uses a 4-bit quantized open-source model served by [llama.cpp](https://github.com/ggml-org/llama.cpp), plus a custom tool server written in Python that gives the model live web search through DuckDuckGo.
 
-- **Demo video:** [add link here]
-- **Author:** [your name]
+## Demo
 
-![Screenshot of the chat page using web search](docs/screenshot.png)
+[![Watch the Demo](resources/Example.PNG)](resources/example.mp4)
+
+[🎬 Watch Demo Video](resources/example.mp4)
+
+## Screenshot
+
+![Chat interface with web search](resources/Example.PNG)
 
 ## What it does
 
